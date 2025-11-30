@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Buddy countdown</title>
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #1b1b1b;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  cursor: crosshair;
+}
+
+#container {
+  position: relative;
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#counter {
+  font-size: 5.5rem;
+  letter-spacing: 0.12em;
+  user-select: none;
+}
+
+#clicks {
+  font-size: 0.9rem;
+  margin-top: 12px;
+  color: #aaaaaa;
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="container">
+  <div id="counter">--h:--m:--s</div>
+  <div id="clicks">Clicks: 0</div>
+</div>
+
+<script>
+// =====================
+// SET DATE
+// =====================
+const TARGET_DATE = new Date("2025-12-13T04:04:59");
+
+// =====================
+// SPEED CONTROL
+// =====================
+const ANIMATION_SPEED = 2;  
+// 0.5 = slow motion
+// 1 = normal
+// 2 = double speed
+// 4 = madness
+
+// =====================
+// PARTICLE SETTINGS
+// =====================
+const PARTICLE_COUNT = 500;
+const PARTICLE_SIZE = 3;
+const SPEED = 15 * ANIMATION_SPEED;
+const GRAVITY = 0.30 * ANIMATION_SPEED;
+const LIFE = 160 / ANIMATION_SPEED;
+const AIR_RESIST = 0.997;
+const WALL_BOUNCE = 0.8;
+
+// =====================
+// COLORS
+// =====================
+const COLORS = ["#ffffff", "#ffd966", "e6a16a", "ebca8f"];
+
+
+// =====================
+// LOVE MESSAGE
+// =====================
+const LOVE_AFTER = 50;
+const LOVE_TEXT = "I love you <3";
+
+// =====================
+// COUNTDOWN
+// =====================
+const counter = document.getElementById("counter");
+const clicksLabel = document.getElementById("clicks");
+let clicks = 0;
+
+function updateCountdown() {
+  if (clicks >= LOVE_AFTER) {
+    counter.textContent = LOVE_TEXT;
+    return;
+  }
+
+  const diff = TARGET_DATE - new Date();
+  if (diff <= 0) {
+    counter.textContent = "TIME UP";
+    return;
+  }
+
+  const h = Math.floor(diff / 3.6e6);
+  const m = Math.floor((diff / 6e4) % 60);
+  const s = Math.floor((diff / 1e3) % 60);
+
+  counter.textContent =
+    `${String(h).padStart(2,"0")}h:` +
+    `${String(m).padStart(2,"0")}m:` +
+    `${String(s).padStart(2,"0")}s`;
+}
+
+setInterval(updateCountdown, 250);
+updateCountdown();
+
+// =====================
+// CANVAS
+// =====================
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let particles = [];
+
+function resize() {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+addEventListener("resize", resize);
+resize();
+
+// =====================
+// CLICK
+// =====================
+addEventListener("mousedown", e => {
+  clicks++;
+  clicksLabel.textContent = "Clicks: " + clicks;
+
+  for (let i = 0; i < PARTICLE_COUNT; i++)
+    particles.push(createParticle(e.clientX, e.clientY));
+});
+
+// =====================
+// PARTICLE FACTORY
+// =====================
+function createParticle(x, y) {
+  const a = Math.random() * Math.PI * 2;
+  const s = Math.random() * SPEED + 2;
+
+  return {
+    x, y,
+    vx: Math.cos(a) * s,
+    vy: Math.sin(a) * s,
+    size: Math.random() * PARTICLE_SIZE + 1,
+    life: LIFE,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)]
+  };
+}
+
+// =====================
+// LOOP
+// =====================
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+
+    p.vx *= AIR_RESIST;
+    p.vy = p.vy * AIR_RESIST + GRAVITY;
+
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+
+    if (p.x <= 0 || p.x + p.size >= canvas.width)
+      p.vx *= -WALL_BOUNCE;
+
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+
+    if (p.life <= 0 || p.y > canvas.height + 40)
+      particles.splice(i, 1);
+  }
+
+  requestAnimationFrame(update);
+}
+update();
+</script>
+
+</body>
+</html>
